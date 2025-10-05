@@ -1,0 +1,550 @@
+---
+description: Optimización de performance y mejores prácticas
+globs: ["**/*.tsx", "**/*.ts", "app/**/*", "components/**/*"]
+alwaysApply: false
+---
+
+# Optimización de Performance
+
+## Objetivos de Performance
+- **LCP (Largest Contentful Paint)**: < 2.2s
+- **FID (First Input Delay)**: < 90ms
+- **CLS (Cumulative Layout Shift)**: < 0.1
+- **Lighthouse Score**: > 90
+- **Bundle Size**: < 500KB inicial
+
+## Optimización de Componentes React
+
+### Memoización Estratégica
+```typescript
+// Usar React.memo para componentes pesados
+import { memo } from "react"
+
+export const MissionCard = memo(function MissionCard({ 
+  mission, 
+  language, 
+  onSelect 
+}: MissionCardProps) {
+  return (
+    <Card className="mission-card">
+      {/* Contenido */}
+    </Card>
+  )
+})
+
+// Comparación personalizada para evitar re-renders innecesarios
+export const MissionList = memo(function MissionList({ 
+  missions, 
+  language 
+}: MissionListProps) {
+  return (
+    <div>
+      {missions.map(mission => (
+        <MissionCard key={mission.id} mission={mission} language={language} />
+      ))}
+    </div>
+  )
+}, (prevProps, nextProps) => {
+  // Solo re-renderizar si cambian las misiones o el idioma
+  return (
+    prevProps.missions === nextProps.missions &&
+    prevProps.language === nextProps.language
+  )
+})
+```
+
+### Hooks Optimizados
+```typescript
+// useMemo para cálculos costosos
+export function MissionDashboard({ missions, progress }: DashboardProps) {
+  const stats = useMemo(() => {
+    return calculateProgressStats(progress, missions)
+  }, [progress, missions])
+  
+  const filteredMissions = useMemo(() => {
+    return filterMissionsByLevel(missions, progress.preferredLevel)
+  }, [missions, progress.preferredLevel])
+  
+  return (
+    <div>
+      <StatsDisplay stats={stats} />
+      <MissionList missions={filteredMissions} />
+    </div>
+  )
+}
+
+// useCallback para funciones pasadas como props
+export function MissionPage({ missionId }: MissionPageProps) {
+  const [selectedLevel, setSelectedLevel] = useState<DifficultyLevel>("beginner")
+  
+  const handleLevelChange = useCallback((level: DifficultyLevel) => {
+    setSelectedLevel(level)
+    // Actualizar URL sin re-render completo
+    window.history.replaceState(null, "", `?level=${level}`)
+  }, [])
+  
+  const handleMissionComplete = useCallback((missionId: string) => {
+    // Lógica de completado
+    updateProgress(missionId)
+  }, [])
+  
+  return (
+    <MissionContent 
+      missionId={missionId}
+      level={selectedLevel}
+      onLevelChange={handleLevelChange}
+      onComplete={handleMissionComplete}
+    />
+  )
+}
+```
+
+### Lazy Loading de Componentes
+```typescript
+// Lazy loading para componentes pesados
+import { lazy, Suspense } from "react"
+
+const MissionContent = lazy(() => import("@/components/mission-content"))
+const AnalyticsDashboard = lazy(() => import("@/components/analytics-dashboard"))
+const GlossaryModal = lazy(() => import("@/components/glossary-modal"))
+
+export function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route 
+          path="/missions/:id" 
+          element={
+            <Suspense fallback={<MissionSkeleton />}>
+              <MissionContent />
+            </Suspense>
+          } 
+        />
+        <Route 
+          path="/analytics" 
+          element={
+            <Suspense fallback={<AnalyticsSkeleton />}>
+              <AnalyticsDashboard />
+            </Suspense>
+          } 
+        />
+      </Routes>
+    </Router>
+  )
+}
+
+// Skeleton loaders para mejor UX
+export function MissionSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="h-8 bg-white/20 rounded w-3/4 mb-4"></div>
+      <div className="h-4 bg-white/20 rounded w-1/2 mb-2"></div>
+      <div className="h-4 bg-white/20 rounded w-2/3"></div>
+    </div>
+  )
+}
+```
+
+## Optimización de Datos
+
+### Cache Inteligente
+```typescript
+// Cache en memoria con TTL
+class ModuleCache {
+  private cache = new Map<string, { data: any; expires: number }>()
+  private ttl = 5 * 60 * 1000 // 5 minutos
+  
+  set(key: string, data: any): void {
+    this.cache.set(key, {
+      data,
+      expires: Date.now() + this.ttl
+    })
+  }
+  
+  get(key: string): any | null {
+    const item = this.cache.get(key)
+    if (!item) return null
+    
+    if (Date.now() > item.expires) {
+      this.cache.delete(key)
+      return null
+    }
+    
+    return item.data
+  }
+  
+  clear(): void {
+    this.cache.clear()
+  }
+}
+
+// Hook para cache de módulos
+export function useCachedModule(missionId: string, level: DifficultyLevel, language: Language) {
+  const [module, setModule] = useState<GeneratedModule | null>(null)
+  const [loading, setLoading] = useState(true)
+  
+  useEffect(() => {
+    const cacheKey = `${missionId}-${level}-${language}`
+    const cached = moduleCache.get(cacheKey)
+    
+    if (cached) {
+      setModule(cached)
+      setLoading(false)
+      return
+    }
+    
+    // Generar nuevo módulo
+    generateModule(missionId, level, language)
+      .then(newModule => {
+        moduleCache.set(cacheKey, newModule)
+        setModule(newModule)
+        setLoading(false)
+      })
+      .catch(error => {
+        console.error("Failed to generate module:", error)
+        setLoading(false)
+      })
+  }, [missionId, level, language])
+  
+  return { module, loading }
+}
+```
+
+### Paginación y Virtualización
+```typescript
+// Virtualización para listas largas
+import { FixedSizeList as List } from "react-window"
+
+export function VirtualizedMissionList({ missions }: { missions: Mission[] }) {
+  const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => (
+    <div style={style}>
+      <MissionCard mission={missions[index]} />
+    </div>
+  )
+  
+  return (
+    <List
+      height={600}
+      itemCount={missions.length}
+      itemSize={200}
+      width="100%"
+    >
+      {Row}
+    </List>
+  )
+}
+
+// Paginación para papers
+export function usePaginatedPapers(page: number = 1, pageSize: number = 20) {
+  const [papers, setPapers] = useState<Paper[]>([])
+  const [loading, setLoading] = useState(true)
+  const [hasMore, setHasMore] = useState(true)
+  
+  useEffect(() => {
+    setLoading(true)
+    
+    const startIndex = (page - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    
+    // Simular carga de datos
+    setTimeout(() => {
+      const pagePapers = allPapers.slice(startIndex, endIndex)
+      setPapers(prev => page === 1 ? pagePapers : [...prev, ...pagePapers])
+      setHasMore(endIndex < allPapers.length)
+      setLoading(false)
+    }, 300)
+  }, [page, pageSize])
+  
+  return { papers, loading, hasMore }
+}
+```
+
+## Optimización de Bundle
+
+### Code Splitting
+```typescript
+// next.config.ts
+const nextConfig = {
+  experimental: {
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons']
+  },
+  webpack: (config) => {
+    config.optimization.splitChunks = {
+      chunks: 'all',
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: 'all',
+        },
+        common: {
+          name: 'common',
+          minChunks: 2,
+          chunks: 'all',
+          enforce: true,
+        },
+      },
+    }
+    return config
+  }
+}
+
+// Dynamic imports para librerías pesadas
+export async function generatePDF(content: string) {
+  const { jsPDF } = await import('jspdf')
+  const doc = new jsPDF()
+  doc.text(content, 10, 10)
+  return doc.output('blob')
+}
+```
+
+### Tree Shaking Optimizado
+```typescript
+// Importar solo lo necesario
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+
+// En lugar de
+// import * as UI from "@/components/ui"
+
+// Usar barrel exports optimizados
+// components/ui/index.ts
+export { Button } from "./button"
+export { Card, CardContent, CardHeader, CardTitle } from "./card"
+export { Badge } from "./badge"
+
+// Evitar importaciones de librerías completas
+import { debounce } from "lodash-es/debounce"
+// En lugar de
+// import { debounce } from "lodash"
+```
+
+## Optimización de Imágenes
+
+### Next.js Image Optimization
+```typescript
+import Image from "next/image"
+
+export function MissionThumbnail({ mission }: { mission: Mission }) {
+  return (
+    <Image
+      src={mission.thumbnail}
+      alt={`${mission.title} thumbnail`}
+      width={300}
+      height={200}
+      className="rounded-lg object-cover"
+      placeholder="blur"
+      blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+      priority={false}
+    />
+  )
+}
+
+// next.config.ts - configuración de imágenes
+const nextConfig = {
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    domains: ['example.com'],
+    unoptimized: false
+  }
+}
+```
+
+## Optimización de APIs
+
+### Request Batching
+```typescript
+// Agrupar requests relacionados
+export async function batchGenerateContent(requests: GenerateRequest[]) {
+  const batch = requests.map(req => ({
+    missionId: req.missionId,
+    level: req.level,
+    language: req.language
+  }))
+  
+  const response = await fetch('/api/generate/batch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ requests: batch })
+  })
+  
+  return response.json()
+}
+
+// Debounce para búsquedas
+export function useDebouncedSearch() {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<Mission[]>([])
+  
+  const debouncedSearch = useCallback(
+    debounce(async (searchQuery: string) => {
+      if (searchQuery.length < 2) {
+        setResults([])
+        return
+      }
+      
+      const searchResults = await searchMissions(searchQuery)
+      setResults(searchResults)
+    }, 300),
+    []
+  )
+  
+  useEffect(() => {
+    debouncedSearch(query)
+  }, [query, debouncedSearch])
+  
+  return { query, setQuery, results }
+}
+```
+
+### Response Compression
+```typescript
+// next.config.ts - compresión
+const nextConfig = {
+  compress: true,
+  poweredByHeader: false,
+  generateEtags: false,
+  
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=300, stale-while-revalidate=600'
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## Monitoreo de Performance
+
+### Web Vitals
+```typescript
+// lib/analytics.ts
+import { getCLS, getFID, getFCP, getLCP, getTTFB } from 'web-vitals'
+
+export function reportWebVitals(metric: any) {
+  // Enviar métricas a Vercel Analytics
+  if (typeof window !== 'undefined') {
+    window.gtag('event', metric.name, {
+      value: Math.round(metric.value),
+      event_label: metric.id,
+      non_interaction: true
+    })
+  }
+}
+
+// _app.tsx
+export function reportWebVitals(metric: any) {
+  console.log(metric)
+  
+  // Enviar a analytics
+  if (metric.label === 'web-vital') {
+    reportWebVitals(metric)
+  }
+}
+```
+
+### Performance Monitoring
+```typescript
+// Hook para monitorear performance
+export function usePerformanceMonitor() {
+  useEffect(() => {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.entryType === 'navigation') {
+          console.log('Navigation timing:', entry)
+        }
+        if (entry.entryType === 'measure') {
+          console.log('Custom measure:', entry)
+        }
+      }
+    })
+    
+    observer.observe({ entryTypes: ['navigation', 'measure'] })
+    
+    return () => observer.disconnect()
+  }, [])
+}
+
+// Medir tiempo de generación de módulos
+export function measureModuleGeneration<T>(
+  fn: () => Promise<T>,
+  missionId: string
+): Promise<T> {
+  const startTime = performance.now()
+  
+  return fn().then(result => {
+    const endTime = performance.now()
+    const duration = endTime - startTime
+    
+    performance.mark(`module-generation-${missionId}`)
+    performance.measure(
+      `module-generation-${missionId}`,
+      `module-generation-${missionId}`
+    )
+    
+    console.log(`Module generation for ${missionId}: ${duration}ms`)
+    return result
+  })
+}
+```
+
+## Optimización de SEO
+
+### Metadata Dinámico
+```typescript
+// app/missions/[id]/page.tsx
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const mission = missions.find(m => m.id === params.id)
+  
+  if (!mission) {
+    return {
+      title: 'Mission Not Found',
+      description: 'The requested mission could not be found.'
+    }
+  }
+  
+  return {
+    title: `${mission.title} | YaisBio Classroom`,
+    description: mission.description,
+    openGraph: {
+      title: mission.title,
+      description: mission.description,
+      images: [mission.thumbnail]
+    }
+  }
+}
+```
+
+### Structured Data
+```typescript
+// components/structured-data.tsx
+export function MissionStructuredData({ mission }: { mission: Mission }) {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "EducationalActivity",
+    "name": mission.title,
+    "description": mission.description,
+    "educationalLevel": mission.level,
+    "timeRequired": `PT${mission.duration}M`,
+    "learningResourceType": "Interactive Module",
+    "inLanguage": ["en", "es"]
+  }
+  
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+    />
+  )
+}
+```

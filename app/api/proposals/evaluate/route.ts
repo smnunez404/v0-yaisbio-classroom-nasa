@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
          Be encouraging but honest.`
 
     const { text } = await generateText({
-      model: "gemini-1.5-pro",
+      model: "gemini-2.0-flash",
       prompt,
       maxTokens: 300,
     })

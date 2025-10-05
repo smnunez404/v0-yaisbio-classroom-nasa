@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
         if (lang === "es") {
           return t.term.toLowerCase().includes(searchTerm) || t.definition.toLowerCase().includes(searchTerm)
         } else {
-          return t.termEn.toLowerCase().includes(searchTerm) || t.definitionEn.toLowerCase().includes(searchTerm)
+          return t.termEs.toLowerCase().includes(searchTerm) || t.definitionEs.toLowerCase().includes(searchTerm)
         }
       })
       return NextResponse.json({ terms: results })

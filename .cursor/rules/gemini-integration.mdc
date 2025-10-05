@@ -1,0 +1,195 @@
+---
+description: Integración con Google Gemini AI
+globs: ["lib/gemini.ts", "app/api/generate/**/*", "app/api/evaluate/**/*"]
+alwaysApply: false
+---
+
+# Integración con Google Gemini AI
+
+## Configuración Base
+```typescript
+// lib/gemini.ts
+import { GoogleGenerativeAI } from "@google/generative-ai"
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "")
+
+// Configuración estándar
+const model = genAI.getGenerativeModel({ 
+  model: "gemini-2.0-flash",
+  generationConfig: {
+    temperature: 0.7, // Balance creatividad/precisión
+    maxOutputTokens: 2048,
+    topP: 0.8,
+    topK: 40
+  }
+})
+```
+
+## Patrones de Generación
+
+### 1. Narrativas Educativas
+```typescript
+export async function generateNarrative(
+  mission: Mission,
+  paper: Paper,
+  level: DifficultyLevel,
+  language: Language
+): Promise<string> {
+  const levelDescriptions = {
+    beginner: language === "es" ? "principiante (12-15 años)" : "beginner (ages 12-15)",
+    intermediate: language === "es" ? "intermedio (16-18 años)" : "intermediate (ages 16-18)",
+    advanced: language === "es" ? "avanzado (universitario)" : "advanced (university level)"
+  }
+
+  const prompt = language === "es" 
+    ? `Eres un narrador experto en educación científica. Crea una narrativa inmersiva de 200-250 palabras...
+       Contexto:
+       - Título: ${mission.titleEs}
+       - Paper: ${paper.titleEs}
+       - Nivel: ${levelDescriptions[level]}
+       - Conceptos: ${mission.conceptsEs.join(", ")}
+       
+       Requisitos:
+       1. Usa segunda persona ("Eres un/a...")
+       2. Escenario espacial realista (ISS, laboratorio orbital)
+       3. Establece desafío científico claro
+       4. Menciona conceptos clave naturalmente
+       5. Tono inspirador pero accesible
+       6. Termina con pregunta motivadora`
+    : `You are an expert science education storyteller. Create an immersive 200-250 word narrative...`
+
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }]
+  })
+
+  return result.response.text()
+}
+```
+
+### 2. Generación de Lecciones
+```typescript
+export async function generateLessons(
+  mission: Mission,
+  paper: Paper,
+  level: DifficultyLevel,
+  language: Language
+): Promise<Lesson[]> {
+  const prompt = language === "es"
+    ? `Genera 3 lecciones educativas sobre: ${mission.titleEs}
+       
+       Formato JSON:
+       [
+         {
+           "title": "Título de la lección",
+           "content": "Contenido educativo (150-200 palabras)",
+           "visualAid": "Descripción de imagen sugerida"
+         }
+       ]
+       
+       Requisitos:
+       - Progresión lógica de conceptos
+       - Lenguaje apropiado para el nivel
+       - Ejemplos concretos
+       - Conexión con investigación real`
+    : `Generate 3 educational lessons about: ${mission.title}...`
+
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }]
+  })
+
+  const text = result.response.text()
+  const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/\[[\s\S]*\]/)
+  return JSON.parse(jsonMatch ? jsonMatch[1] || jsonMatch[0] : text)
+}
+```
+
+### 3. Evaluación de Respuestas
+```typescript
+export async function evaluateAnswer(
+  answer: string,
+  expectedConcepts: string[],
+  language: Language
+): Promise<{ score: number; feedback: string }> {
+  const prompt = language === "es"
+    ? `Evalúa esta respuesta de estudiante:
+       
+       Respuesta: "${answer}"
+       Conceptos esperados: ${expectedConcepts.join(", ")}
+       
+       Proporciona:
+       1. Puntuación (0-100)
+       2. Feedback constructivo (50-100 palabras)
+       
+       Formato JSON:
+       {
+         "score": 85,
+         "feedback": "Tu respuesta demuestra..."
+       }`
+    : `Evaluate this student answer...`
+
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }]
+  })
+
+  const text = result.response.text()
+  const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/\{[\s\S]*\}/)
+  return JSON.parse(jsonMatch ? jsonMatch[1] || jsonMatch[0] : text)
+}
+```
+
+## Manejo de Errores
+```typescript
+// Wrapper para manejo de errores de Gemini
+async function safeGeminiCall<T>(
+  prompt: string,
+  fallback: T
+): Promise<T> {
+  try {
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }]
+    })
+    return result.response.text() as T
+  } catch (error) {
+    console.error("Gemini API error:", error)
+    // Retry con backoff exponencial
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      const retryResult = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: prompt }] }]
+      })
+      return retryResult.response.text() as T
+    } catch (retryError) {
+      console.error("Gemini retry failed:", retryError)
+      return fallback
+    }
+  }
+}
+```
+
+## Cache y Optimización
+```typescript
+// Cache simple en memoria para MVP
+const moduleCache = new Map<string, any>()
+
+export async function getCachedModule(
+  missionId: string,
+  level: DifficultyLevel,
+  language: Language
+) {
+  const cacheKey = `${missionId}-${level}-${language}`
+  
+  if (moduleCache.has(cacheKey)) {
+    return moduleCache.get(cacheKey)
+  }
+  
+  const module = await generateModule(missionId, level, language)
+  moduleCache.set(cacheKey, module)
+  return module
+}
+```
+
+## Rate Limiting
+- 60 requests/minuto por IP
+- Cache agresivo para reducir llamadas repetitivas
+- Queue de requests para evitar sobrecarga
+- Fallback a contenido pre-generado si Gemini falla

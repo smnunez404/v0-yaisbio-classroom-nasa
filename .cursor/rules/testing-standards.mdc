@@ -1,0 +1,505 @@
+---
+description: Estándares de testing para YaisBio Classroom
+globs: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "__tests__/**/*"]
+alwaysApply: false
+---
+
+# Estándares de Testing
+
+## Configuración Base
+```typescript
+// jest.config.js
+module.exports = {
+  testEnvironment: "jsdom",
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  moduleNameMapping: {
+    "^@/(.*)$": "<rootDir>/$1"
+  },
+  collectCoverageFrom: [
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "!**/*.d.ts",
+    "!**/node_modules/**"
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    }
+  }
+}
+
+// jest.setup.ts
+import "@testing-library/jest-dom"
+import { TextEncoder, TextDecoder } from "util"
+
+global.TextEncoder = TextEncoder
+global.TextDecoder = TextDecoder as any
+```
+
+## Testing de Componentes React
+
+### Componente de Misión
+```typescript
+// __tests__/components/mission-card.test.tsx
+import { render, screen, fireEvent } from "@testing-library/react"
+import { MissionCard } from "@/components/mission-card"
+import type { Mission } from "@/types"
+
+const mockMission: Mission = {
+  id: "mission-1",
+  paperId: "paper-1",
+  title: "Space Mouse Training",
+  titleEs: "Entrenamiento Espacial de Ratones",
+  description: "Train mice for space mission",
+  descriptionEs: "Entrena ratones para misión espacial",
+  level: "beginner",
+  duration: 10,
+  thumbnail: "/mission-1.jpg",
+  concepts: ["adaptation"],
+  conceptsEs: ["adaptación"],
+  researchGap: "Psychological effects",
+  researchGapEs: "Efectos psicológicos"
+}
+
+describe("MissionCard", () => {
+  it("renders mission information correctly", () => {
+    render(<MissionCard mission={mockMission} language="en" />)
+    
+    expect(screen.getByText("Space Mouse Training")).toBeInTheDocument()
+    expect(screen.getByText("Train mice for space mission")).toBeInTheDocument()
+    expect(screen.getByText("10 min")).toBeInTheDocument()
+    expect(screen.getByText("beginner")).toBeInTheDocument()
+  })
+  
+  it("switches language correctly", () => {
+    render(<MissionCard mission={mockMission} language="es" />)
+    
+    expect(screen.getByText("Entrenamiento Espacial de Ratones")).toBeInTheDocument()
+    expect(screen.getByText("Entrena ratones para misión espacial")).toBeInTheDocument()
+  })
+  
+  it("calls onSelect when clicked", () => {
+    const onSelect = jest.fn()
+    render(<MissionCard mission={mockMission} language="en" onSelect={onSelect} />)
+    
+    fireEvent.click(screen.getByRole("button"))
+    expect(onSelect).toHaveBeenCalledWith(mockMission)
+  })
+  
+  it("applies correct styling for difficulty level", () => {
+    render(<MissionCard mission={mockMission} language="en" />)
+    
+    const badge = screen.getByText("beginner")
+    expect(badge).toHaveClass("bg-green-500")
+  })
+})
+```
+
+### Hook Personalizado
+```typescript
+// __tests__/hooks/use-language.test.ts
+import { renderHook, act } from "@testing-library/react"
+import { useLanguage } from "@/hooks/use-language"
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn()
+}
+Object.defineProperty(window, "localStorage", { value: localStorageMock })
+
+describe("useLanguage", () => {
+  beforeEach(() => {
+    localStorageMock.getItem.mockClear()
+    localStorageMock.setItem.mockClear()
+  })
+  
+  it("initializes with default language", () => {
+    const { result } = renderHook(() => useLanguage())
+    
+    expect(result.current.language).toBe("es")
+  })
+  
+  it("loads language from localStorage", () => {
+    localStorageMock.getItem.mockReturnValue("en")
+    
+    const { result } = renderHook(() => useLanguage())
+    
+    expect(result.current.language).toBe("en")
+    expect(localStorageMock.getItem).toHaveBeenCalledWith("yaisbio_language")
+  })
+  
+  it("changes language and saves to localStorage", () => {
+    const { result } = renderHook(() => useLanguage())
+    
+    act(() => {
+      result.current.changeLanguage("en")
+    })
+    
+    expect(result.current.language).toBe("en")
+    expect(localStorageMock.setItem).toHaveBeenCalledWith("yaisbio_language", "en")
+  })
+})
+```
+
+## Testing de APIs
+
+### API Route de Generación
+```typescript
+// __tests__/api/generate-module.test.ts
+import { POST } from "@/app/api/generate/module/route"
+import { NextRequest } from "next/server"
+
+// Mock Gemini
+jest.mock("@/lib/gemini", () => ({
+  generateNarrative: jest.fn().mockResolvedValue("Test narrative"),
+  generateLessons: jest.fn().mockResolvedValue([
+    { title: "Lesson 1", content: "Content 1" }
+  ]),
+  generateQuestions: jest.fn().mockResolvedValue([
+    { text: "Question 1", type: "multiple-choice" }
+  ])
+}))
+
+describe("/api/generate/module", () => {
+  it("generates module successfully", async () => {
+    const request = new NextRequest("http://localhost/api/generate/module", {
+      method: "POST",
+      body: JSON.stringify({
+        missionId: "mission-1",
+        level: "beginner",
+        language: "en"
+      })
+    })
+    
+    const response = await POST(request)
+    const data = await response.json()
+    
+    expect(response.status).toBe(200)
+    expect(data.success).toBe(true)
+    expect(data.module).toBeDefined()
+    expect(data.module.missionId).toBe("mission-1")
+    expect(data.module.level).toBe("beginner")
+    expect(data.module.language).toBe("en")
+  })
+  
+  it("returns error for missing parameters", async () => {
+    const request = new NextRequest("http://localhost/api/generate/module", {
+      method: "POST",
+      body: JSON.stringify({
+        missionId: "mission-1"
+        // Missing level and language
+      })
+    })
+    
+    const response = await POST(request)
+    const data = await response.json()
+    
+    expect(response.status).toBe(400)
+    expect(data.success).toBe(false)
+    expect(data.error).toBe("Missing required parameters")
+  })
+  
+  it("returns error for invalid mission", async () => {
+    const request = new NextRequest("http://localhost/api/generate/module", {
+      method: "POST",
+      body: JSON.stringify({
+        missionId: "invalid-mission",
+        level: "beginner",
+        language: "en"
+      })
+    })
+    
+    const response = await POST(request)
+    const data = await response.json()
+    
+    expect(response.status).toBe(404)
+    expect(data.error).toBe("Mission or paper not found")
+  })
+})
+```
+
+## Testing de Utilidades
+
+### Funciones de Datos
+```typescript
+// __tests__/lib/data-utils.test.ts
+import { 
+  validateMission, 
+  filterMissionsByLevel, 
+  searchMissions,
+  calculateProgressStats 
+} from "@/lib/data-utils"
+import { missions } from "@/lib/data/missions"
+
+describe("data-utils", () => {
+  describe("validateMission", () => {
+    it("validates correct mission", () => {
+      const validMission = missions[0]
+      expect(validateMission(validMission)).toBe(true)
+    })
+    
+    it("rejects invalid mission", () => {
+      const invalidMission = { id: "test" }
+      expect(validateMission(invalidMission)).toBe(false)
+    })
+  })
+  
+  describe("filterMissionsByLevel", () => {
+    it("filters by specific level", () => {
+      const beginnerMissions = filterMissionsByLevel(missions, "beginner")
+      expect(beginnerMissions.every(m => m.level === "beginner")).toBe(true)
+    })
+    
+    it("returns all missions for 'all' level", () => {
+      const allMissions = filterMissionsByLevel(missions, "all")
+      expect(allMissions).toHaveLength(missions.length)
+    })
+  })
+  
+  describe("searchMissions", () => {
+    it("searches by title in English", () => {
+      const results = searchMissions(missions, "mouse", "en")
+      expect(results.length).toBeGreaterThan(0)
+      expect(results[0].title.toLowerCase()).toContain("mouse")
+    })
+    
+    it("searches by title in Spanish", () => {
+      const results = searchMissions(missions, "ratón", "es")
+      expect(results.length).toBeGreaterThan(0)
+      expect(results[0].titleEs.toLowerCase()).toContain("ratón")
+    })
+  })
+  
+  describe("calculateProgressStats", () => {
+    it("calculates progress correctly", () => {
+      const progress = {
+        code: "TEST123",
+        completedMissions: ["mission-1", "mission-2"],
+        answers: {
+          "q1": { isCorrect: true },
+          "q2": { isCorrect: false },
+          "q3": { isCorrect: true }
+        },
+        badges: [],
+        language: "en" as const,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+      
+      const stats = calculateProgressStats(progress)
+      
+      expect(stats.completionPercentage).toBe(20) // 2/10 * 100
+      expect(stats.accuracy).toBe(66.67) // 2/3 * 100
+      expect(stats.timeSpent).toBe(24) // 2 * 12 minutes
+    })
+  })
+})
+```
+
+## Testing de Integración
+
+### Flujo Completo de Misión
+```typescript
+// __tests__/integration/mission-flow.test.tsx
+import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import MissionPage from "@/app/missions/[id]/page"
+
+// Mock Next.js router
+jest.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    back: jest.fn()
+  }),
+  useParams: () => ({ id: "mission-1" })
+}))
+
+// Mock API calls
+global.fetch = jest.fn()
+
+describe("Mission Flow Integration", () => {
+  beforeEach(() => {
+    (fetch as jest.Mock).mockClear()
+  })
+  
+  it("completes full mission flow", async () => {
+    const user = userEvent.setup()
+    
+    // Mock API responses
+    (fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ mission: missions[0] })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          module: {
+            narrative: "Test narrative",
+            lessons: [{ title: "Lesson 1", content: "Content" }],
+            questions: [{ text: "Test question", type: "multiple-choice" }]
+          }
+        })
+      })
+    
+    render(<MissionPage />)
+    
+    // Wait for mission to load
+    await waitFor(() => {
+      expect(screen.getByText("Space Mouse Training")).toBeInTheDocument()
+    })
+    
+    // Start mission
+    const startButton = screen.getByText("Start Mission")
+    await user.click(startButton)
+    
+    // Wait for module generation
+    await waitFor(() => {
+      expect(screen.getByText("Test narrative")).toBeInTheDocument()
+    })
+    
+    // Complete lesson
+    const nextButton = screen.getByText("Next")
+    await user.click(nextButton)
+    
+    // Answer question
+    const option = screen.getByText("Option A")
+    await user.click(option)
+    
+    const submitButton = screen.getByText("Submit")
+    await user.click(submitButton)
+    
+    // Verify completion
+    await waitFor(() => {
+      expect(screen.getByText("Mission Completed!")).toBeInTheDocument()
+    })
+  })
+})
+```
+
+## Testing de Accesibilidad
+```typescript
+// __tests__/accessibility/accessibility.test.tsx
+import { render } from "@testing-library/react"
+import { axe, toHaveNoViolations } from "jest-axe"
+import MissionCard from "@/components/mission-card"
+
+expect.extend(toHaveNoViolations)
+
+describe("Accessibility", () => {
+  it("MissionCard has no accessibility violations", async () => {
+    const { container } = render(
+      <MissionCard mission={mockMission} language="en" />
+    )
+    
+    const results = await axe(container)
+    expect(results).toHaveNoViolations()
+  })
+  
+  it("supports keyboard navigation", async () => {
+    const user = userEvent.setup()
+    render(<MissionCard mission={mockMission} language="en" />)
+    
+    const card = screen.getByRole("button")
+    
+    // Tab to focus
+    await user.tab()
+    expect(card).toHaveFocus()
+    
+    // Enter to activate
+    await user.keyboard("{Enter}")
+    expect(mockOnSelect).toHaveBeenCalled()
+  })
+})
+```
+
+## Testing de Performance
+```typescript
+// __tests__/performance/performance.test.tsx
+import { render } from "@testing-library/react"
+import MissionList from "@/components/mission-list"
+
+describe("Performance", () => {
+  it("renders large mission list efficiently", () => {
+    const startTime = performance.now()
+    
+    render(<MissionList missions={Array(100).fill(mockMission)} />)
+    
+    const endTime = performance.now()
+    const renderTime = endTime - startTime
+    
+    // Should render in less than 100ms
+    expect(renderTime).toBeLessThan(100)
+  })
+  
+  it("does not cause memory leaks", () => {
+    const { unmount } = render(<MissionList missions={missions} />)
+    
+    // Unmount component
+    unmount()
+    
+    // Force garbage collection if available
+    if (global.gc) {
+      global.gc()
+    }
+    
+    // Component should be properly cleaned up
+    expect(true).toBe(true) // Placeholder for actual memory leak detection
+  })
+})
+```
+
+## Configuración de Mocks
+```typescript
+// __tests__/mocks/gemini.ts
+export const mockGeminiResponse = {
+  generateNarrative: jest.fn().mockResolvedValue("Generated narrative"),
+  generateLessons: jest.fn().mockResolvedValue([
+    { title: "Lesson 1", content: "Content 1" }
+  ]),
+  generateQuestions: jest.fn().mockResolvedValue([
+    { text: "Question 1", type: "multiple-choice", options: ["A", "B"] }
+  ]),
+  evaluateAnswer: jest.fn().mockResolvedValue({
+    score: 85,
+    feedback: "Good answer!"
+  })
+}
+
+// __tests__/mocks/data.ts
+export const mockMission: Mission = {
+  id: "mission-1",
+  paperId: "paper-1",
+  title: "Test Mission",
+  titleEs: "Misión de Prueba",
+  description: "Test description",
+  descriptionEs: "Descripción de prueba",
+  level: "beginner",
+  duration: 10,
+  thumbnail: "/test.jpg",
+  concepts: ["test"],
+  conceptsEs: ["prueba"],
+  researchGap: "Test gap",
+  researchGapEs: "Brecha de prueba"
+}
+```
+
+## Scripts de Testing
+```json
+// package.json
+{
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:e2e": "playwright test"
+  }
+}
+```

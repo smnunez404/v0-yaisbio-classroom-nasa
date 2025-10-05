@@ -1,0 +1,379 @@
+---
+description: Estándares para API Routes de Next.js
+globs: ["app/api/**/*"]
+alwaysApply: false
+---
+
+# API Routes - Next.js App Router
+
+## Estructura de API Routes
+```typescript
+// app/api/endpoint/route.ts
+import { type NextRequest, NextResponse } from "next/server"
+
+// Tipos de request/response
+interface RequestBody {
+  // Definir estructura esperada
+}
+
+interface ResponseData {
+  success: boolean
+  data?: any
+  error?: string
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    // Lógica del endpoint
+    const data = await processRequest()
+    
+    return NextResponse.json({
+      success: true,
+      data
+    })
+  } catch (error) {
+    console.error("API Error:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Internal server error"
+      },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body: RequestBody = await request.json()
+    
+    // Validar body
+    if (!body.requiredField) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Missing required field"
+        },
+        { status: 400 }
+      )
+    }
+    
+    const result = await processPostRequest(body)
+    
+    return NextResponse.json({
+      success: true,
+      data: result
+    })
+  } catch (error) {
+    console.error("POST Error:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to process request"
+      },
+      { status: 500 }
+    )
+  }
+}
+```
+
+## Patrones Específicos para YaisBio
+
+### 1. Generación de Módulos
+```typescript
+// app/api/generate/module/route.ts
+export async function POST(request: NextRequest) {
+  try {
+    const { missionId, level, language } = await request.json()
+    
+    // Validar parámetros
+    if (!missionId || !level || !language) {
+      return NextResponse.json(
+        { error: "Missing required parameters" },
+        { status: 400 }
+      )
+    }
+    
+    // Verificar cache primero
+    const cacheKey = `${missionId}-${level}-${language}`
+    if (moduleCache.has(cacheKey)) {
+      return NextResponse.json({
+        module: moduleCache.get(cacheKey),
+        cached: true
+      })
+    }
+    
+    // Generar contenido con Gemini
+    const mission = missions.find(m => m.id === missionId)
+    const paper = papers.find(p => p.id === mission?.paperId)
+    
+    if (!mission || !paper) {
+      return NextResponse.json(
+        { error: "Mission or paper not found" },
+        { status: 404 }
+      )
+    }
+    
+    const [narrative, lessons, questions] = await Promise.all([
+      generateNarrative(mission, paper, level, language),
+      generateLessons(mission, paper, level, language),
+      generateQuestions(mission, level, language)
+    ])
+    
+    const module = {
+      id: `module-${Date.now()}`,
+      missionId,
+      level,
+      language,
+      narrative,
+      lessons,
+      questions,
+      generatedAt: new Date()
+    }
+    
+    // Cache el resultado
+    moduleCache.set(cacheKey, module)
+    
+    return NextResponse.json({ module, cached: false })
+  } catch (error: any) {
+    console.error("Generation error:", error)
+    return NextResponse.json(
+      {
+        error: "Failed to generate module",
+        details: error.message
+      },
+      { status: 500 }
+    )
+  }
+}
+```
+
+### 2. Progreso del Usuario
+```typescript
+// app/api/progress/route.ts
+export async function POST(request: NextRequest) {
+  try {
+    const { language = "es" } = await request.json()
+    
+    const code = generateCode()
+    const progress: UserProgress = {
+      code,
+      completedMissions: [],
+      answers: {},
+      badges: [],
+      language,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+    
+    progressStore.set(code, progress)
+    
+    return NextResponse.json({ code, progress })
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to create progress" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function GET(request: NextRequest) {
+  const code = request.nextUrl.searchParams.get("code")
+  
+  if (!code) {
+    return NextResponse.json(
+      { error: "Code required" },
+      { status: 400 }
+    )
+  }
+  
+  const progress = progressStore.get(code)
+  
+  if (!progress) {
+    return NextResponse.json(
+      { error: "Progress not found" },
+      { status: 404 }
+    )
+  }
+  
+  return NextResponse.json({ progress })
+}
+```
+
+### 3. Evaluación de Respuestas
+```typescript
+// app/api/evaluate/answer/route.ts
+export async function POST(request: NextRequest) {
+  try {
+    const { answer, expectedConcepts, language, level } = await request.json()
+    
+    if (!answer || !expectedConcepts || !language) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      )
+    }
+    
+    const evaluation = await evaluateAnswer(answer, expectedConcepts, language)
+    
+    return NextResponse.json({
+      success: true,
+      evaluation
+    })
+  } catch (error: any) {
+    console.error("Evaluation error:", error)
+    return NextResponse.json(
+      {
+        error: "Failed to evaluate answer",
+        details: error.message
+      },
+      { status: 500 }
+    )
+  }
+}
+```
+
+## Manejo de Errores Estandarizado
+```typescript
+// lib/api-utils.ts
+export class APIError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number = 500,
+    public code?: string
+  ) {
+    super(message)
+    this.name = "APIError"
+  }
+}
+
+export function handleAPIError(error: unknown): NextResponse {
+  if (error instanceof APIError) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: error.message,
+        code: error.code
+      },
+      { status: error.statusCode }
+    )
+  }
+  
+  console.error("Unexpected error:", error)
+  return NextResponse.json(
+    {
+      success: false,
+      error: "Internal server error"
+    },
+    { status: 500 }
+  )
+}
+
+// Uso en API routes
+export async function GET(request: NextRequest) {
+  try {
+    // Lógica del endpoint
+  } catch (error) {
+    return handleAPIError(error)
+  }
+}
+```
+
+## Validación de Input
+```typescript
+// lib/validation.ts
+import { z } from "zod"
+
+export const missionRequestSchema = z.object({
+  missionId: z.string().min(1),
+  level: z.enum(["beginner", "intermediate", "advanced"]),
+  language: z.enum(["es", "en"])
+})
+
+export const progressUpdateSchema = z.object({
+  code: z.string().min(1),
+  updates: z.object({
+    completedMissions: z.array(z.string()).optional(),
+    answers: z.record(z.any()).optional(),
+    badges: z.array(z.string()).optional()
+  })
+})
+
+// Uso en API routes
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const validatedData = missionRequestSchema.parse(body)
+    
+    // Usar validatedData en lugar de body
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          details: error.errors
+        },
+        { status: 400 }
+      )
+    }
+    throw error
+  }
+}
+```
+
+## Rate Limiting
+```typescript
+// lib/rate-limit.ts
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>()
+
+export function rateLimit(
+  identifier: string,
+  limit: number = 60,
+  windowMs: number = 60000
+): boolean {
+  const now = Date.now()
+  const record = rateLimitMap.get(identifier)
+  
+  if (!record || now > record.resetTime) {
+    rateLimitMap.set(identifier, { count: 1, resetTime: now + windowMs })
+    return true
+  }
+  
+  if (record.count >= limit) {
+    return false
+  }
+  
+  record.count++
+  return true
+}
+
+// Uso en API routes
+export async function POST(request: NextRequest) {
+  const ip = request.ip || "unknown"
+  
+  if (!rateLimit(ip, 60, 60000)) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded" },
+      { status: 429 }
+    )
+  }
+  
+  // Continuar con la lógica
+}
+```
+
+## CORS y Headers
+```typescript
+// Configuración de CORS para desarrollo
+export function setCORSHeaders(response: NextResponse): NextResponse {
+  response.headers.set("Access-Control-Allow-Origin", "*")
+  response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+  return response
+}
+
+// Manejo de OPTIONS para CORS
+export async function OPTIONS(request: NextRequest) {
+  return setCORSHeaders(new NextResponse(null, { status: 200 }))
+}
+```

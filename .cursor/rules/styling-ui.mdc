@@ -1,0 +1,290 @@
+---
+description: Estándares de estilos y UI con Tailwind CSS
+globs: ["**/*.tsx", "**/*.css", "app/globals.css"]
+alwaysApply: false
+---
+
+# Estilos y UI - Tailwind CSS
+
+## Tema Espacial Oscuro
+```css
+/* app/globals.css */
+:root {
+  /* Tema espacial oscuro inspirado en Vercel observability */
+  --background: oklch(0.09 0.01 240);
+  --foreground: oklch(0.98 0.005 240);
+  --card: oklch(0.12 0.01 240);
+  --card-foreground: oklch(0.98 0.005 240);
+  --primary: oklch(0.65 0.18 265);
+  --primary-foreground: oklch(0.98 0.005 240);
+  --secondary: oklch(0.18 0.01 240);
+  --secondary-foreground: oklch(0.98 0.005 240);
+  --muted: oklch(0.18 0.01 240);
+  --muted-foreground: oklch(0.55 0.01 240);
+  --accent: oklch(0.55 0.15 180);
+  --accent-foreground: oklch(0.98 0.005 240);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(0.98 0.005 240);
+  --border: oklch(0.2 0.01 240);
+  --input: oklch(0.2 0.01 240);
+  --ring: oklch(0.65 0.18 265);
+}
+```
+
+## Gradientes Espaciales
+```typescript
+// Clases de gradiente estándar
+const gradients = {
+  background: "bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900",
+  card: "bg-gradient-to-br from-slate-800/50 to-purple-900/30",
+  button: "bg-gradient-to-r from-purple-600 to-blue-600",
+  accent: "bg-gradient-to-r from-green-500 to-emerald-500"
+}
+
+// Uso en componentes
+<div className={`min-h-screen ${gradients.background}`}>
+  <Card className={`${gradients.card} backdrop-blur-lg border-purple-500/20`}>
+    {/* Contenido */}
+  </Card>
+</div>
+```
+
+## Colores por Nivel de Dificultad
+```typescript
+// Mapeo de colores para niveles
+const levelColors = {
+  beginner: {
+    bg: "bg-green-500",
+    text: "text-green-100",
+    border: "border-green-500/30",
+    hover: "hover:bg-green-600"
+  },
+  intermediate: {
+    bg: "bg-yellow-500",
+    text: "text-yellow-100", 
+    border: "border-yellow-500/30",
+    hover: "hover:bg-yellow-600"
+  },
+  advanced: {
+    bg: "bg-red-500",
+    text: "text-red-100",
+    border: "border-red-500/30", 
+    hover: "hover:bg-red-600"
+  }
+}
+
+// Componente de badge de nivel
+function LevelBadge({ level }: { level: DifficultyLevel }) {
+  const colors = levelColors[level]
+  
+  return (
+    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${colors.bg} ${colors.text}`}>
+      {level}
+    </span>
+  )
+}
+```
+
+## Efectos Glassmorphism
+```typescript
+// Clases estándar para efectos de vidrio
+const glassEffects = {
+  card: "bg-white/10 backdrop-blur-lg border-white/20",
+  cardHover: "hover:bg-white/20 transition-all duration-300",
+  button: "bg-white/20 backdrop-blur-sm border-white/30",
+  buttonHover: "hover:bg-white/30 hover:backdrop-blur-md"
+}
+
+// Uso en componentes
+<Card className={`${glassEffects.card} ${glassEffects.cardHover} rounded-xl p-6`}>
+  <Button className={`${glassEffects.button} ${glassEffects.buttonHover}`}>
+    Acción
+  </Button>
+</Card>
+```
+
+## Animaciones y Transiciones
+```typescript
+// Clases de animación estándar
+const animations = {
+  fadeIn: "animate-in fade-in duration-300",
+  slideUp: "animate-in slide-in-from-bottom-4 duration-500",
+  scale: "transition-transform hover:scale-105 duration-200",
+  pulse: "animate-pulse",
+  bounce: "animate-bounce"
+}
+
+// Efectos de hover
+const hoverEffects = {
+  lift: "transform hover:scale-105 transition-all duration-200",
+  glow: "hover:shadow-lg hover:shadow-purple-500/25 transition-shadow duration-300",
+  border: "hover:border-purple-400 transition-colors duration-200"
+}
+```
+
+## Componentes UI Personalizados
+
+### Card Espacial
+```typescript
+interface SpaceCardProps {
+  children: React.ReactNode
+  className?: string
+  hover?: boolean
+  level?: DifficultyLevel
+}
+
+export function SpaceCard({ children, className = "", hover = true, level }: SpaceCardProps) {
+  const levelStyles = level ? levelColors[level] : {}
+  
+  return (
+    <Card className={cn(
+      "bg-white/10 backdrop-blur-lg border-purple-500/20 rounded-xl p-6",
+      hover && "hover:bg-white/20 transition-all duration-300 transform hover:scale-105",
+      levelStyles.border,
+      className
+    )}>
+      {children}
+    </Card>
+  )
+}
+```
+
+### Botón Espacial
+```typescript
+interface SpaceButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "accent" | "danger"
+  size?: "sm" | "md" | "lg"
+}
+
+export function SpaceButton({ 
+  variant = "primary", 
+  size = "md", 
+  className = "", 
+  children, 
+  ...props 
+}: SpaceButtonProps) {
+  const variants = {
+    primary: "bg-purple-600 hover:bg-purple-700 text-white",
+    secondary: "bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm",
+    accent: "bg-green-500 hover:bg-green-600 text-white",
+    danger: "bg-red-500 hover:bg-red-600 text-white"
+  }
+  
+  const sizes = {
+    sm: "px-3 py-1.5 text-sm",
+    md: "px-4 py-2 text-base",
+    lg: "px-6 py-3 text-lg"
+  }
+  
+  return (
+    <button
+      className={cn(
+        "rounded-lg font-semibold transition-colors duration-200",
+        variants[variant],
+        sizes[size],
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </button>
+  )
+}
+```
+
+## Responsive Design
+```typescript
+// Breakpoints estándar
+const breakpoints = {
+  mobile: "sm:",
+  tablet: "md:",
+  desktop: "lg:",
+  large: "xl:"
+}
+
+// Grid responsive
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  {/* Cards */}
+</div>
+
+// Texto responsive
+<h1 className="text-3xl md:text-5xl lg:text-7xl font-bold">
+  Título
+</h1>
+
+// Spacing responsive
+<section className="px-4 md:px-8 lg:px-16 py-8 md:py-16">
+  {/* Contenido */}
+</section>
+```
+
+## Estados de Carga
+```typescript
+// Skeleton loader
+export function MissionCardSkeleton() {
+  return (
+    <Card className="bg-white/10 backdrop-blur-lg border-purple-500/20 rounded-xl p-6">
+      <div className="animate-pulse">
+        <div className="h-4 bg-white/20 rounded w-3/4 mb-4"></div>
+        <div className="h-3 bg-white/20 rounded w-1/2 mb-2"></div>
+        <div className="h-3 bg-white/20 rounded w-2/3"></div>
+      </div>
+    </Card>
+  )
+}
+
+// Loading spinner
+export function LoadingSpinner({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
+  const sizes = {
+    sm: "w-4 h-4",
+    md: "w-8 h-8", 
+    lg: "w-12 h-12"
+  }
+  
+  return (
+    <div className={`${sizes[size]} animate-spin rounded-full border-2 border-white/20 border-t-purple-500`} />
+  )
+}
+```
+
+## Accesibilidad
+```typescript
+// Focus states
+const focusStyles = "focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+
+// Screen reader only
+const srOnly = "sr-only"
+
+// High contrast mode
+const highContrast = "contrast-more:border-white contrast-more:text-white"
+
+// Uso en componentes
+<button className={cn(
+  "bg-purple-600 text-white px-4 py-2 rounded-lg",
+  focusStyles,
+  highContrast
+)}>
+  Acción
+</button>
+```
+
+## Utilidades de Clases
+```typescript
+// lib/utils.ts - función cn mejorada
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+// Uso en componentes
+<div className={cn(
+  "base-classes",
+  condition && "conditional-classes",
+  variant === "primary" && "primary-classes",
+  className // Props externas
+)}>
+  {/* Contenido */}
+</div>
+```

@@ -1,0 +1,237 @@
+---
+description: Soporte bilingüe nativo (español/inglés)
+globs: ["**/*.tsx", "**/*.ts", "lib/data/**/*"]
+alwaysApply: false
+---
+
+# Soporte Bilingüe Nativo
+
+## Estructura de Datos Bilingüe
+```typescript
+// Todos los objetos de contenido deben tener versiones ES/EN
+export interface Mission {
+  id: string
+  title: string        // Inglés
+  titleEs: string      // Español
+  description: string
+  descriptionEs: string
+  concepts: string[]   // Inglés
+  conceptsEs: string[] // Español
+  researchGap: string
+  researchGapEs: string
+}
+
+export interface Badge {
+  id: string
+  name: string
+  nameEs: string
+  description: string
+  descriptionEs: string
+  // ...
+}
+```
+
+## Patrón de Renderizado Bilingüe
+```typescript
+// Componente con soporte bilingüe
+interface BilingualComponentProps {
+  language: "es" | "en"
+  data: {
+    title: string
+    titleEs: string
+    description: string
+    descriptionEs: string
+  }
+}
+
+export default function BilingualComponent({ language, data }: BilingualComponentProps) {
+  const title = language === "es" ? data.titleEs : data.title
+  const description = language === "es" ? data.descriptionEs : data.description
+  
+  return (
+    <div>
+      <h2>{title}</h2>
+      <p>{description}</p>
+    </div>
+  )
+}
+```
+
+## Hook para Manejo de Idioma
+```typescript
+// hooks/use-language.ts
+export function useLanguage() {
+  const [language, setLanguage] = useState<"es" | "en">("es")
+  
+  useEffect(() => {
+    // Cargar preferencia desde localStorage
+    const savedLanguage = localStorage.getItem("yaisbio_language") as "es" | "en" | null
+    if (savedLanguage) {
+      setLanguage(savedLanguage)
+    }
+  }, [])
+  
+  const changeLanguage = (newLanguage: "es" | "en") => {
+    setLanguage(newLanguage)
+    localStorage.setItem("yaisbio_language", newLanguage)
+  }
+  
+  return { language, changeLanguage }
+}
+```
+
+## Componente de Cambio de Idioma
+```typescript
+// components/language-toggle.tsx
+export function LanguageToggle() {
+  const { language, changeLanguage } = useLanguage()
+  
+  return (
+    <button
+      onClick={() => changeLanguage(language === "es" ? "en" : "es")}
+      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
+    >
+      {language === "es" ? "🇪🇸 ES" : "🇬🇧 EN"}
+    </button>
+  )
+}
+```
+
+## Textos de Interfaz
+```typescript
+// lib/texts.ts
+export const texts = {
+  es: {
+    navigation: {
+      home: "Inicio",
+      missions: "Misiones",
+      dashboard: "Mi Progreso",
+      glossary: "Glosario",
+      propose: "Proponer Experimento"
+    },
+    mission: {
+      start: "Comenzar",
+      continue: "Continuar",
+      completed: "Completada",
+      duration: "min",
+      level: {
+        beginner: "Principiante",
+        intermediate: "Intermedio",
+        advanced: "Avanzado"
+      }
+    },
+    dashboard: {
+      title: "Mi Progreso",
+      astronautCode: "Código de Astronauta",
+      missionsCompleted: "Misiones Completadas",
+      badgesEarned: "Badges Ganadas",
+      accuracy: "Precisión"
+    }
+  },
+  en: {
+    navigation: {
+      home: "Home",
+      missions: "Missions",
+      dashboard: "My Progress",
+      glossary: "Glossary",
+      propose: "Propose Experiment"
+    },
+    mission: {
+      start: "Start",
+      continue: "Continue",
+      completed: "Completed",
+      duration: "min",
+      level: {
+        beginner: "Beginner",
+        intermediate: "Intermediate",
+        advanced: "Advanced"
+      }
+    },
+    dashboard: {
+      title: "My Progress",
+      astronautCode: "Astronaut Code",
+      missionsCompleted: "Missions Completed",
+      badgesEarned: "Badges Earned",
+      accuracy: "Accuracy"
+    }
+  }
+}
+
+// Hook para acceder a textos
+export function useTexts() {
+  const { language } = useLanguage()
+  return texts[language]
+}
+```
+
+## Filtrado y Búsqueda Bilingüe
+```typescript
+// Funciones de búsqueda que consideran ambos idiomas
+export function searchMissions(query: string, language: "es" | "en"): Mission[] {
+  const lowerQuery = query.toLowerCase()
+  
+  return missions.filter(mission => {
+    const title = language === "es" ? mission.titleEs : mission.title
+    const description = language === "es" ? mission.descriptionEs : mission.description
+    const concepts = language === "es" ? mission.conceptsEs : mission.concepts
+    
+    return (
+      title.toLowerCase().includes(lowerQuery) ||
+      description.toLowerCase().includes(lowerQuery) ||
+      concepts.some(concept => concept.toLowerCase().includes(lowerQuery))
+    )
+  })
+}
+```
+
+## Validación de Contenido Bilingüe
+```typescript
+// Validar que todos los objetos tengan ambas versiones
+export function validateBilingualContent<T extends Record<string, any>>(
+  items: T[],
+  requiredFields: (keyof T)[]
+): boolean {
+  return items.every(item => {
+    return requiredFields.every(field => {
+      const englishField = field as string
+      const spanishField = `${englishField}Es`
+      
+      return (
+        item[englishField] && 
+        item[spanishField] && 
+        typeof item[englishField] === typeof item[spanishField]
+      )
+    })
+  })
+}
+```
+
+## Convenciones de Naming
+- Campos en inglés: `title`, `description`, `concepts`
+- Campos en español: `titleEs`, `descriptionEs`, `conceptsEs`
+- Siempre mantener el mismo tipo de dato en ambas versiones
+- Arrays deben tener la misma longitud en ambas versiones
+
+## Testing Bilingüe
+```typescript
+// Tests que verifican ambas versiones
+describe("Bilingual Content", () => {
+  test("all missions have both language versions", () => {
+    missions.forEach(mission => {
+      expect(mission.title).toBeDefined()
+      expect(mission.titleEs).toBeDefined()
+      expect(mission.concepts.length).toBe(mission.conceptsEs.length)
+    })
+  })
+  
+  test("language switching works correctly", () => {
+    const { result } = renderHook(() => useLanguage())
+    
+    act(() => {
+      result.current.changeLanguage("en")
+    })
+    
+    expect(result.current.language).toBe("en")
+  })
+})
+```

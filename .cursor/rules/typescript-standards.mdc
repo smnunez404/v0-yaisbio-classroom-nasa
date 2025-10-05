@@ -1,0 +1,78 @@
+---
+description: Estándares TypeScript para YaisBio Classroom
+globs: ["**/*.ts", "**/*.tsx"]
+alwaysApply: true
+---
+
+# Estándares TypeScript
+
+## Configuración Base
+- Usar TypeScript estricto (`strict: true`)
+- Target ES6 para compatibilidad
+- Module resolution: bundler
+- Path aliases: `@/*` para imports desde raíz
+
+## Convenciones de Naming
+- **Archivos**: kebab-case (`mission-card.tsx`)
+- **Componentes**: PascalCase (`MissionCard`)
+- **Funciones**: camelCase (`generateNarrative`)
+- **Constantes**: UPPER_SNAKE_CASE (`GEMINI_API_KEY`)
+- **Tipos/Interfaces**: PascalCase (`Mission`, `UserProgress`)
+
+## Estructura de Tipos
+```typescript
+// Usar interfaces para objetos
+export interface Mission {
+  id: string
+  title: string
+  titleEs: string
+  level: DifficultyLevel
+  // ...
+}
+
+// Usar type unions para valores específicos
+export type DifficultyLevel = "beginner" | "intermediate" | "advanced"
+export type Language = "es" | "en"
+
+// Usar enums solo cuando sea necesario
+export enum BadgeCategory {
+  FIRST_STEPS = "first-steps",
+  SPECIALIST = "specialist",
+  // ...
+}
+```
+
+## Imports y Exports
+```typescript
+// Imports ordenados
+import { useState } from "react"
+import Link from "next/link"
+
+import { missions } from "@/lib/data/missions"
+import type { Mission, DifficultyLevel } from "@/types"
+
+// Exports nombrados preferidos
+export const missions: Mission[] = [...]
+export function generateNarrative() { ... }
+
+// Default exports solo para componentes/páginas
+export default function MissionPage() { ... }
+```
+
+## Manejo de Errores
+```typescript
+// Usar Result pattern para operaciones que pueden fallar
+type Result<T, E = Error> = 
+  | { success: true; data: T }
+  | { success: false; error: E }
+
+// Ejemplo de uso
+async function generateContent(): Promise<Result<GeneratedModule>> {
+  try {
+    const result = await gemini.generateContent(prompt)
+    return { success: true, data: result }
+  } catch (error) {
+    return { success: false, error: error as Error }
+  }
+}
+```

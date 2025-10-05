@@ -1,34 +1,19 @@
 // API for user progress management
 
 import { type NextRequest, NextResponse } from "next/server"
+import { progressStore } from "@/lib/data/progress-store"
 import type { UserProgress } from "@/types"
-
-// In-memory storage for MVP (replace with database in production)
-const progressStore = new Map<string, UserProgress>()
-
-function generateCode(): string {
-  return Math.random().toString(36).substring(2, 10).toUpperCase()
-}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { language = "es" } = body
 
-    const code = generateCode()
-    const progress: UserProgress = {
-      code,
-      completedMissions: [],
-      answers: {},
-      badges: [],
-      language,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }
+    const progress = progressStore.create()
+    progress.language = language
+    progressStore.update(progress.code, progress)
 
-    progressStore.set(code, progress)
-
-    return NextResponse.json({ code, progress })
+    return NextResponse.json({ code: progress.code, progress })
   } catch (error) {
     return NextResponse.json({ error: "Failed to create progress" }, { status: 500 })
   }
@@ -71,7 +56,7 @@ export async function PUT(request: NextRequest) {
       updatedAt: new Date(),
     }
 
-    progressStore.set(code, updatedProgress)
+    progressStore.update(code, updatedProgress)
 
     return NextResponse.json({ progress: updatedProgress })
   } catch (error) {

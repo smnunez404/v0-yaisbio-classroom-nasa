@@ -1,0 +1,33 @@
+---
+description: Visión general del proyecto YaisBio Classroom
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# YaisBio Classroom - Plataforma Educativa de Biología Espacial
+
+## Propósito del Proyecto
+Transformar investigaciones de biología espacial de la NASA en aventuras de aprendizaje interactivas usando Google Gemini AI. Plataforma bilingüe (español/inglés) que democratiza el acceso a la investigación espacial.
+
+## Arquitectura Principal
+- **Framework**: Next.js 15 con App Router
+- **Lenguaje**: TypeScript estricto
+- **Estilos**: Tailwind CSS con tema oscuro espacial
+- **UI**: shadcn/ui components
+- **IA**: Google Gemini 2.0 Flash para generación de contenido
+- **Base de datos**: 608 papers de NASA GeneLab
+
+## Características Clave
+- 10 misiones educativas base con 3 niveles de dificultad
+- Sistema de 20 badges gamificado
+- Soporte bilingüe nativo (ES/EN)
+- Generación dinámica de contenido con IA
+- Dashboard de progreso del usuario
+- Análisis de investigación científica
+
+## Principios de Desarrollo
+- Código limpio, semántico y minimalista
+- Accesibilidad WCAG 2.1 AA
+- Performance Lighthouse >90
+- Enfoque en impacto social (ODS)
+- Inclusión cultural latinoamericana

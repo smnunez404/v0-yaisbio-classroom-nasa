@@ -34,9 +34,9 @@ export function BadgeDisplay({ badges, earnedBadgeIds, language }: BadgeDisplayP
                 <Lock className="w-12 h-12 text-muted-foreground" />
               )}
             </div>
-            <h3 className="font-semibold text-sm mb-1">{language === "es" ? badge.name : badge.nameEn}</h3>
+            <h3 className="font-semibold text-sm mb-1">{language === "es" ? badge.nameEs : badge.name}</h3>
             <p className="text-xs text-muted-foreground">
-              {language === "es" ? badge.description : badge.descriptionEn}
+              {language === "es" ? badge.descriptionEs : badge.description}
             </p>
             {isEarned && (
               <div className="mt-2 text-xs text-green-500 font-medium">

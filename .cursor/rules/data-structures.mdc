@@ -1,0 +1,370 @@
+---
+description: Estructuras de datos y modelos del proyecto
+globs: ["lib/data/**/*", "types/**/*"]
+alwaysApply: false
+---
+
+# Estructuras de Datos - YaisBio Classroom
+
+## Tipos Base
+```typescript
+// types/index.ts
+export type Language = "es" | "en"
+export type DifficultyLevel = "beginner" | "intermediate" | "advanced"
+
+export type BadgeCategory = 
+  | "first-steps" 
+  | "specialist" 
+  | "difficulty" 
+  | "knowledge" 
+  | "community" 
+  | "special"
+
+export type QuestionType = "multiple-choice" | "open-ended"
+```
+
+## Modelo de Paper (Investigación NASA)
+```typescript
+export interface Paper {
+  id: string
+  title: string
+  titleEs: string
+  authors: string
+  year: number
+  journal: string
+  pmcLink: string
+  pmcId?: string
+  category: PaperCategory
+  keywords: string[]
+  keywordsEs: string[]
+  abstract: string
+  abstractEs: string
+}
+
+export type PaperCategory = 
+  | "space-biology"
+  | "musculoskeletal" 
+  | "plant-biology"
+  | "immunology"
+  | "microbiology"
+  | "radiation-biology"
+  | "genomics"
+```
+
+## Modelo de Misión
+```typescript
+export interface Mission {
+  id: string
+  paperId: string
+  title: string
+  titleEs: string
+  description: string
+  descriptionEs: string
+  level: DifficultyLevel
+  duration: number // minutos
+  thumbnail: string
+  concepts: string[]
+  conceptsEs: string[]
+  researchGap: string
+  researchGapEs: string
+}
+
+// Ejemplo de estructura
+const mission: Mission = {
+  id: "mission-1",
+  paperId: "paper-1", 
+  title: "Space Mouse Training",
+  titleEs: "Entrenamiento Espacial de Ratones",
+  description: "Train mice for the Bion-M 1 space mission...",
+  descriptionEs: "Entrena ratones para la misión espacial Bion-M 1...",
+  level: "beginner",
+  duration: 10,
+  thumbnail: "/missions/mission-1-thumb.webp",
+  concepts: ["Biological adaptation", "Animal models", "Space experiments"],
+  conceptsEs: ["Adaptación biológica", "Modelos animales", "Experimentos espaciales"],
+  researchGap: "Lack of data on psychological effects of training",
+  researchGapEs: "Falta de datos sobre efectos psicológicos del entrenamiento"
+}
+```
+
+## Modelo de Módulo Generado
+```typescript
+export interface GeneratedModule {
+  id: string
+  missionId: string
+  level: DifficultyLevel
+  language: Language
+  narrative: string
+  lessons: Lesson[]
+  questions: Question[]
+  generatedAt: Date
+}
+
+export interface Lesson {
+  id: string
+  title: string
+  content: string
+  visualAid?: string
+}
+
+export interface Question {
+  id: string
+  text: string
+  type: QuestionType
+  options?: string[]
+  correctAnswer?: string
+  explanation: string
+}
+```
+
+## Modelo de Progreso del Usuario
+```typescript
+export interface UserProgress {
+  code: string
+  completedMissions: string[]
+  currentMission?: string
+  currentStep?: number
+  answers: Record<string, any>
+  badges: string[]
+  language: Language
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Estructura de respuestas
+export interface MissionAnswer {
+  questionId: string
+  answer: string
+  isCorrect: boolean
+  score: number
+  feedback: string
+  timestamp: Date
+}
+
+// Progreso extendido para dashboard
+export interface ExtendedProgress extends UserProgress {
+  totalQuestions: number
+  correctAnswers: number
+  accuracy: number
+  timeSpent: number // minutos
+  lastActivity: Date
+}
+```
+
+## Modelo de Badge
+```typescript
+export interface Badge {
+  id: string
+  name: string
+  nameEs: string
+  description: string
+  descriptionEs: string
+  icon: string
+  category: BadgeCategory
+  criteria: string
+}
+
+// Ejemplo de badge
+const badge: Badge = {
+  id: "badge-1",
+  name: "Successful Liftoff",
+  nameEs: "Despegue Exitoso",
+  description: "Completed your first mission",
+  descriptionEs: "Completaste tu primera misión",
+  icon: "/badges/liftoff.svg",
+  category: "first-steps",
+  criteria: "complete_first_mission"
+}
+```
+
+## Modelo de Glosario
+```typescript
+export interface GlossaryTerm {
+  id: string
+  term: string
+  termEs: string
+  definition: string
+  definitionEs: string
+  relatedMissions: string[]
+  category: string
+  difficulty: DifficultyLevel
+}
+
+// Ejemplo de término
+const glossaryTerm: GlossaryTerm = {
+  id: "term-1",
+  term: "Microgravity",
+  termEs: "Microgravedad", 
+  definition: "Condition of extremely weak gravity (10^-6 g) experienced in orbit",
+  definitionEs: "Condición de gravedad extremadamente débil (10^-6 g) experimentada en órbita",
+  relatedMissions: ["mission-2", "mission-3", "mission-4"],
+  category: "physics",
+  difficulty: "beginner"
+}
+```
+
+## Modelo de Propuesta de Experimento
+```typescript
+export interface ExperimentProposal {
+  id: string
+  userCode: string
+  missionId: string
+  title: string
+  description: string
+  hypothesis: string
+  methodology: string
+  expectedResults: string
+  aiFeedback?: string
+  status: "pending" | "reviewed" | "approved"
+  createdAt: Date
+  updatedAt: Date
+}
+```
+
+## Estructuras de Datos para APIs
+
+### Request/Response Types
+```typescript
+// API Request types
+export interface GenerateModuleRequest {
+  missionId: string
+  level: DifficultyLevel
+  language: Language
+  personalizations?: {
+    focus?: string[]
+    examples?: string[]
+    tone?: "formal" | "casual" | "inspiring"
+  }
+}
+
+export interface EvaluateAnswerRequest {
+  answer: string
+  expectedConcepts: string[]
+  language: Language
+  level: DifficultyLevel
+}
+
+// API Response types
+export interface GenerateModuleResponse {
+  success: boolean
+  module?: GeneratedModule
+  cached: boolean
+  error?: string
+}
+
+export interface EvaluateAnswerResponse {
+  success: boolean
+  evaluation?: {
+    score: number
+    feedback: string
+    concepts: string[]
+  }
+  error?: string
+}
+```
+
+## Funciones de Utilidad para Datos
+```typescript
+// lib/data-utils.ts
+export function validateMission(mission: any): mission is Mission {
+  return (
+    typeof mission.id === "string" &&
+    typeof mission.title === "string" &&
+    typeof mission.titleEs === "string" &&
+    typeof mission.level === "string" &&
+    ["beginner", "intermediate", "advanced"].includes(mission.level) &&
+    Array.isArray(mission.concepts) &&
+    Array.isArray(mission.conceptsEs) &&
+    mission.concepts.length === mission.conceptsEs.length
+  )
+}
+
+export function filterMissionsByLevel(
+  missions: Mission[], 
+  level: DifficultyLevel | "all"
+): Mission[] {
+  if (level === "all") return missions
+  return missions.filter(mission => mission.level === level)
+}
+
+export function searchMissions(
+  missions: Mission[],
+  query: string,
+  language: Language
+): Mission[] {
+  const lowerQuery = query.toLowerCase()
+  
+  return missions.filter(mission => {
+    const title = language === "es" ? mission.titleEs : mission.title
+    const description = language === "es" ? mission.descriptionEs : mission.description
+    const concepts = language === "es" ? mission.conceptsEs : mission.concepts
+    
+    return (
+      title.toLowerCase().includes(lowerQuery) ||
+      description.toLowerCase().includes(lowerQuery) ||
+      concepts.some(concept => concept.toLowerCase().includes(lowerQuery))
+    )
+  })
+}
+
+export function calculateProgressStats(progress: UserProgress): {
+  completionPercentage: number
+  accuracy: number
+  timeSpent: number
+} {
+  const totalMissions = 10 // Base missions
+  const completionPercentage = (progress.completedMissions.length / totalMissions) * 100
+  
+  // Calcular precisión basada en respuestas
+  const totalAnswers = Object.keys(progress.answers).length
+  const correctAnswers = Object.values(progress.answers).filter(
+    (answer: any) => answer.isCorrect
+  ).length
+  const accuracy = totalAnswers > 0 ? (correctAnswers / totalAnswers) * 100 : 0
+  
+  // Calcular tiempo estimado
+  const timeSpent = progress.completedMissions.length * 12 // 12 min promedio por misión
+  
+  return {
+    completionPercentage,
+    accuracy,
+    timeSpent
+  }
+}
+```
+
+## Cache y Almacenamiento
+```typescript
+// Estructura de cache para módulos generados
+export interface CachedModule {
+  id: string
+  missionId: string
+  level: DifficultyLevel
+  language: Language
+  content: GeneratedModule
+  generatedAt: Date
+  accessCount: number
+  lastAccessed: Date
+}
+
+// Store en memoria para MVP
+export class ProgressStore {
+  private store = new Map<string, UserProgress>()
+  
+  set(code: string, progress: UserProgress): void {
+    this.store.set(code, progress)
+  }
+  
+  get(code: string): UserProgress | undefined {
+    return this.store.get(code)
+  }
+  
+  delete(code: string): boolean {
+    return this.store.delete(code)
+  }
+  
+  getAll(): UserProgress[] {
+    return Array.from(this.store.values())
+  }
+}
+```

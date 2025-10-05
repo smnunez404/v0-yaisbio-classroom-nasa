@@ -1,0 +1,112 @@
+---
+description: Estándares para componentes React
+globs: ["**/*.tsx", "components/**/*"]
+alwaysApply: false
+---
+
+# Estándares de Componentes React
+
+## Estructura de Componentes
+```typescript
+// 1. Imports externos
+import { useState, useEffect } from "react"
+import Link from "next/link"
+
+// 2. Imports internos
+import { missions } from "@/lib/data/missions"
+import type { Mission } from "@/types"
+import { Card, CardContent } from "@/components/ui/card"
+
+// 3. Tipos locales
+interface MissionCardProps {
+  mission: Mission
+  language: "es" | "en"
+  onSelect?: (mission: Mission) => void
+}
+
+// 4. Componente principal
+export default function MissionCard({ mission, language, onSelect }: MissionCardProps) {
+  // 5. Hooks
+  const [isLoading, setIsLoading] = useState(false)
+  
+  // 6. Handlers
+  const handleClick = () => {
+    onSelect?.(mission)
+  }
+  
+  // 7. Render
+  return (
+    <Card className="bg-white/10 backdrop-blur-lg">
+      <CardContent>
+        {/* JSX */}
+      </CardContent>
+    </Card>
+  )
+}
+```
+
+## Convenciones de Props
+- Props opcionales con `?`
+- Props con valores por defecto usando destructuring
+- Props de callback con prefijo `on` (`onSelect`, `onChange`)
+- Props de configuración con prefijo `config` (`configTheme`)
+
+## Hooks Personalizados
+```typescript
+// hooks/use-mission-progress.ts
+export function useMissionProgress(missionId: string) {
+  const [progress, setProgress] = useState<MissionProgress | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  
+  useEffect(() => {
+    // Lógica del hook
+  }, [missionId])
+  
+  return { progress, isLoading, updateProgress: setProgress }
+}
+```
+
+## Componentes UI con shadcn/ui
+- Usar componentes base de `@/components/ui/`
+- Extender con `className` para personalización
+- Mantener accesibilidad nativa de shadcn/ui
+- Usar `cn()` para combinar clases de Tailwind
+
+## Estado y Props
+```typescript
+// Props inmutables, estado mutable
+interface ComponentProps {
+  readonly mission: Mission // Props no mutables
+  onUpdate: (data: Partial<Mission>) => void // Callbacks
+}
+
+// Estado local para UI
+const [isExpanded, setIsExpanded] = useState(false)
+const [selectedOption, setSelectedOption] = useState<string | null>(null)
+```
+
+## Renderizado Condicional
+```typescript
+// Usar early returns para casos especiales
+if (isLoading) {
+  return <LoadingSpinner />
+}
+
+if (!mission) {
+  return <ErrorMessage message="Mission not found" />
+}
+
+// Renderizado principal
+return (
+  <div>
+    {isExpanded && <ExpandedContent />}
+    {selectedOption && <OptionDetails option={selectedOption} />}
+  </div>
+)
+```
+
+## Performance
+- Usar `React.memo()` para componentes pesados
+- `useMemo()` para cálculos costosos
+- `useCallback()` para funciones pasadas como props
+- Lazy loading para componentes grandes
