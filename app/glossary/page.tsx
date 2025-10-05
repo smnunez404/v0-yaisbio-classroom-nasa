@@ -5,6 +5,7 @@ import { Navigation } from "@/components/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { useLanguage } from "@/contexts/language-context"
 
 // Sample glossary terms (50 terms as per spec)
 const glossaryTerms = [
@@ -57,7 +58,7 @@ const glossaryTerms = [
 ]
 
 export default function GlossaryPage() {
-  const [language, setLanguage] = useState<"es" | "en">("es")
+  const { language, isLoaded } = useLanguage()
   const [searchTerm, setSearchTerm] = useState("")
 
   const filteredTerms = glossaryTerms.filter((term) => {
@@ -70,9 +71,18 @@ export default function GlossaryPage() {
     )
   })
 
+  // Mostrar loading hasta que el contexto esté cargado
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-2xl">Cargando...</div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900">
-      <Navigation language={language} onLanguageChange={setLanguage} />
+      <Navigation />
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">

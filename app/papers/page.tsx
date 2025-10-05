@@ -8,15 +8,25 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Search, ExternalLink, BookOpen } from "lucide-react"
+import { useLanguage } from "@/contexts/language-context"
 
 export default function PapersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState<string>("all")
-  const [language, setLanguage] = useState<"en" | "es">("en")
+  const { language, isLoaded } = useLanguage()
 
   const filteredPapers = searchQuery
     ? searchPapers(searchQuery)
     : papersByCategory[selectedCategory as keyof typeof papersByCategory] || allPapers
+
+  // Mostrar loading hasta que el contexto esté cargado
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 flex items-center justify-center">
+        <div className="text-white text-2xl">Cargando...</div>
+      </div>
+    )
+  }
 
   const categories = [
     { id: "all", label: "All Papers", labelEs: "Todos los Artículos" },
@@ -43,17 +53,17 @@ export default function PapersPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950">
-      <Navigation language={language} onLanguageChange={setLanguage} />
+      <Navigation />
 
       <main className="container mx-auto px-4 py-8 pt-24">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">
-            {language === "en" ? "Research Papers" : "Artículos de Investigación"}
+            {language === "es" ? "Artículos de Investigación" : "Research Papers"}
           </h1>
           <p className="text-slate-300 text-lg">
-            {language === "en"
-              ? `Explore ${allPapers.length} NASA GeneLab research papers on space biology`
-              : `Explora ${allPapers.length} artículos de investigación del GeneLab de la NASA sobre biología espacial`}
+            {language === "es"
+              ? `Explora ${allPapers.length} artículos de investigación del GeneLab de la NASA sobre biología espacial`
+              : `Explore ${allPapers.length} NASA GeneLab research papers on space biology`}
           </p>
         </div>
 
@@ -63,7 +73,7 @@ export default function PapersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
             <Input
               type="text"
-              placeholder={language === "en" ? "Search papers..." : "Buscar artículos..."}
+              placeholder={language === "es" ? "Buscar artículos..." : "Search papers..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 bg-slate-900/50 border-purple-500/30 text-white"
@@ -83,7 +93,7 @@ export default function PapersPage() {
                     : "border-purple-500/30 text-slate-300 hover:bg-purple-900/30"
                 }
               >
-                {language === "en" ? cat.label : cat.labelEs}
+                {language === "es" ? cat.labelEs : cat.label}
               </Button>
             ))}
           </div>
@@ -116,7 +126,7 @@ export default function PapersPage() {
                 >
                   <a href={paper.pmcLink} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="h-4 w-4 mr-1" />
-                    {language === "en" ? "Read Paper" : "Leer Artículo"}
+                    {language === "es" ? "Leer Artículo" : "Read Paper"}
                   </a>
                 </Button>
               </div>
@@ -128,9 +138,9 @@ export default function PapersPage() {
           <div className="text-center py-12">
             <BookOpen className="h-16 w-16 text-slate-600 mx-auto mb-4" />
             <p className="text-slate-400 text-lg">
-              {language === "en"
-                ? "No papers found matching your search"
-                : "No se encontraron artículos que coincidan con tu búsqueda"}
+              {language === "es"
+                ? "No se encontraron artículos que coincidan con tu búsqueda"
+                : "No papers found matching your search"}
             </p>
           </div>
         )}

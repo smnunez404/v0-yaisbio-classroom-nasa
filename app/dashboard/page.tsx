@@ -8,9 +8,10 @@ import Link from "next/link"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { useLanguage } from "@/contexts/language-context"
 
 export default function DashboardPage() {
-  const [language, setLanguage] = useState<"es" | "en">("es")
+  const { language, isLoaded } = useLanguage()
   const [userProgress, setUserProgress] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -36,10 +37,10 @@ export default function DashboardPage() {
     setLoading(false)
   }, [])
 
-  if (loading) {
+  if (loading || !isLoaded) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900">
-        <Navigation language={language} onLanguageChange={setLanguage} />
+        <Navigation />
         <div className="container mx-auto px-4 py-16 text-center text-white">
           <div className="text-2xl">{language === "es" ? "Cargando..." : "Loading..."}</div>
         </div>
@@ -54,7 +55,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900">
-      <Navigation language={language} onLanguageChange={setLanguage} />
+      <Navigation />
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}

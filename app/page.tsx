@@ -1,35 +1,44 @@
 // Homepage with mission selection
 
+"use client"
+
 import Link from "next/link"
 import { missions } from "@/lib/data/missions"
+import { useLanguage } from "@/contexts/language-context"
 
 export default function HomePage() {
+  const { language, isLoaded } = useLanguage()
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900">
       {/* Hero Section */}
       <header className="container mx-auto px-4 py-16 text-center">
         <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">YaisBio Classroom</h1>
-        <p className="text-xl md:text-2xl text-purple-200 mb-8 max-w-3xl mx-auto">
-          Transform NASA space biology research into interactive learning adventures
+        <p className="text-xl md:text-2xl text-purple-200 mb-8 max-w-3xl mx-auto" suppressHydrationWarning>
+          {!isLoaded ? "Transforma investigaciones de biología espacial de la NASA en aventuras de aprendizaje interactivas" : 
+           language === "es" 
+            ? "Transforma investigaciones de biología espacial de la NASA en aventuras de aprendizaje interactivas"
+            : "Transform NASA space biology research into interactive learning adventures"
+          }
         </p>
         <div className="flex gap-4 justify-center flex-wrap">
           <Link
             href="/missions"
             className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
           >
-            Start Exploring
+            {!isLoaded ? "Comenzar Exploración" : language === "es" ? "Comenzar Exploración" : "Start Exploring"}
           </Link>
           <Link
             href="/dashboard"
             className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
           >
-            My Progress
+            {!isLoaded ? "Mi Progreso" : language === "es" ? "Mi Progreso" : "My Progress"}
           </Link>
           <Link
             href="/analytics"
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
           >
-            Research Analytics
+            {!isLoaded ? "Analytics de Investigación" : language === "es" ? "Analytics de Investigación" : "Research Analytics"}
           </Link>
         </div>
       </header>
@@ -57,7 +66,9 @@ export default function HomePage() {
 
       {/* Mission Preview */}
       <section className="container mx-auto px-4 py-16">
-        <h2 className="text-4xl font-bold text-white text-center mb-12">Featured Missions</h2>
+        <h2 className="text-4xl font-bold text-white text-center mb-12" suppressHydrationWarning>
+          {!isLoaded ? "Misiones Destacadas" : language === "es" ? "Misiones Destacadas" : "Featured Missions"}
+        </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {missions.slice(0, 6).map((mission) => (
             <Link
@@ -79,14 +90,18 @@ export default function HomePage() {
                 </span>
                 <span className="text-purple-200 text-sm">{mission.duration} min</span>
               </div>
-              <h3 className="text-xl font-bold mb-2">{mission.titleEs}</h3>
-              <p className="text-purple-200 text-sm">{mission.descriptionEs}</p>
+              <h3 className="text-xl font-bold mb-2" suppressHydrationWarning>
+                {!isLoaded ? mission.titleEs : language === "es" ? mission.titleEs : mission.title}
+              </h3>
+              <p className="text-purple-200 text-sm" suppressHydrationWarning>
+                {!isLoaded ? mission.descriptionEs : language === "es" ? mission.descriptionEs : mission.description}
+              </p>
             </Link>
           ))}
         </div>
         <div className="text-center mt-8">
           <Link href="/missions" className="text-green-400 hover:text-green-300 font-semibold text-lg">
-            View All Missions →
+            {!isLoaded ? "Ver Todas las Misiones →" : language === "es" ? "Ver Todas las Misiones →" : "View All Missions →"}
           </Link>
         </div>
       </section>
@@ -97,19 +112,27 @@ export default function HomePage() {
           <div className="grid md:grid-cols-4 gap-8 text-center text-white">
             <div>
               <div className="text-4xl font-bold text-green-400 mb-2">608</div>
-              <div className="text-purple-200">NASA Papers</div>
+              <div className="text-purple-200" suppressHydrationWarning>
+                {!isLoaded ? "Papers de NASA" : language === "es" ? "Papers de NASA" : "NASA Papers"}
+              </div>
             </div>
             <div>
               <div className="text-4xl font-bold text-green-400 mb-2">10</div>
-              <div className="text-purple-200">Missions (MVP)</div>
+              <div className="text-purple-200" suppressHydrationWarning>
+                {!isLoaded ? "Misiones (MVP)" : language === "es" ? "Misiones (MVP)" : "Missions (MVP)"}
+              </div>
             </div>
             <div>
               <div className="text-4xl font-bold text-green-400 mb-2">20</div>
-              <div className="text-purple-200">Badges to Earn</div>
+              <div className="text-purple-200" suppressHydrationWarning>
+                {!isLoaded ? "Badges por Ganar" : language === "es" ? "Badges por Ganar" : "Badges to Earn"}
+              </div>
             </div>
             <div>
               <div className="text-4xl font-bold text-green-400 mb-2">2</div>
-              <div className="text-purple-200">Languages</div>
+              <div className="text-purple-200" suppressHydrationWarning>
+                {!isLoaded ? "Idiomas" : language === "es" ? "Idiomas" : "Languages"}
+              </div>
             </div>
           </div>
         </div>
@@ -117,19 +140,21 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="container mx-auto px-4 py-8 text-center text-purple-200">
-        <p className="mb-4">Part of the YAIS Ecosystem</p>
+        <p className="mb-4" suppressHydrationWarning>
+          {!isLoaded ? "Parte del Ecosistema YAIS" : language === "es" ? "Parte del Ecosistema YAIS" : "Part of the YAIS Ecosystem"}
+        </p>
         <div className="flex gap-6 justify-center flex-wrap">
           <Link href="/missions" className="hover:text-white">
-            Missions
+            {!isLoaded ? "Misiones" : language === "es" ? "Misiones" : "Missions"}
           </Link>
           <Link href="/dashboard" className="hover:text-white">
             Dashboard
           </Link>
           <Link href="/glossary" className="hover:text-white">
-            Glossary
+            {!isLoaded ? "Glosario" : language === "es" ? "Glosario" : "Glossary"}
           </Link>
           <Link href="/propose" className="hover:text-white">
-            Propose Experiment
+            {!isLoaded ? "Proponer Experimento" : language === "es" ? "Proponer Experimento" : "Propose Experiment"}
           </Link>
           <a href="https://yais.org" target="_blank" rel="noopener noreferrer" className="hover:text-white">
             YAIS Lab

@@ -7,17 +7,27 @@ import Link from "next/link"
 import { missions } from "@/lib/data/missions"
 import type { DifficultyLevel } from "@/types"
 import { Navigation } from "@/components/navigation"
+import { useLanguage } from "@/contexts/language-context"
 
 export default function MissionsPage() {
   const [filter, setFilter] = useState<DifficultyLevel | "all">("all")
-  const [language, setLanguage] = useState<"es" | "en">("es")
+  const { language, isLoaded } = useLanguage()
 
   const filteredMissions = filter === "all" ? missions : missions.filter((m) => m.level === filter)
+
+  // Mostrar loading hasta que el contexto esté cargado
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-2xl">Cargando...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900">
       {/* Navigation component */}
-      <Navigation language={language} onLanguageChange={setLanguage} />
+      <Navigation />
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
@@ -25,12 +35,6 @@ export default function MissionsPage() {
           <Link href="/" className="text-white hover:text-purple-300">
             ← Back to Home
           </Link>
-          <button
-            onClick={() => setLanguage(language === "es" ? "en" : "es")}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-          >
-            {language === "es" ? "🇪🇸 ES" : "🇬🇧 EN"}
-          </button>
         </div>
 
         <h1 className="text-5xl font-bold text-white mb-4">

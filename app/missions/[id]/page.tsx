@@ -9,15 +9,25 @@ import { Navigation } from "@/components/navigation"
 import { missions } from "@/lib/data/missions"
 import { papers } from "@/lib/data/papers"
 import { PodcastPlayer } from "@/components/podcast-player"
+import { useLanguage } from "@/contexts/language-context"
 
 export default function MissionPage() {
   const params = useParams()
   const router = useRouter()
-  const [language, setLanguage] = useState<"es" | "en">("es")
+  const { language, isLoaded } = useLanguage()
   const [level, setLevel] = useState<"beginner" | "intermediate" | "advanced">("intermediate")
   const [loading, setLoading] = useState(false)
   const [module, setModule] = useState<any>(null)
   const [currentStep, setCurrentStep] = useState<"intro" | "narrative" | "lessons" | "questions">("intro")
+
+  // Mostrar loading hasta que el contexto esté cargado
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-2xl">Cargando...</div>
+      </div>
+    )
+  }
 
   const mission = missions.find((m) => m.id === params.id)
   const paper = papers.find((p) => p.id === mission?.paperId)
@@ -61,7 +71,7 @@ export default function MissionPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900">
-      <Navigation language={language} onLanguageChange={setLanguage} />
+      <Navigation />
 
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
@@ -69,12 +79,6 @@ export default function MissionPage() {
           <Link href="/missions" className="text-white hover:text-purple-300">
             ← {language === "es" ? "Volver a Misiones" : "Back to Missions"}
           </Link>
-          <button
-            onClick={() => setLanguage(language === "es" ? "en" : "es")}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg"
-          >
-            {language === "es" ? "🇪🇸 ES" : "🇬🇧 EN"}
-          </button>
         </div>
 
         {currentStep === "intro" && (

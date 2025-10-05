@@ -1,38 +1,42 @@
+"use client"
+
 import { Card } from "@/components/ui/card"
 import { TrendingUp, TrendingDown, Activity, Database, Satellite, Zap } from "lucide-react"
-
-const metrics = [
-  {
-    label: "Active Missions",
-    value: "12",
-    change: "+2",
-    trend: "up",
-    icon: Satellite,
-  },
-  {
-    label: "Data Points Collected",
-    value: "2.4M",
-    change: "+18.2%",
-    trend: "up",
-    icon: Database,
-  },
-  {
-    label: "Research Papers",
-    value: "608",
-    change: "+45",
-    trend: "up",
-    icon: Activity,
-  },
-  {
-    label: "Processing Speed",
-    value: "352.7 KB/s",
-    change: "-0.1%",
-    trend: "down",
-    icon: Zap,
-  },
-]
+import { useLanguage } from "@/contexts/language-context"
 
 export function MetricsGrid() {
+  const { language } = useLanguage()
+
+  const metrics = [
+    {
+      label: language === "es" ? "Misiones Activas" : "Active Missions",
+      value: "12",
+      change: "+2",
+      trend: "up",
+      icon: Satellite,
+    },
+    {
+      label: language === "es" ? "Puntos de Datos Recolectados" : "Data Points Collected",
+      value: "2.4M",
+      change: "+18.2%",
+      trend: "up",
+      icon: Database,
+    },
+    {
+      label: language === "es" ? "Artículos de Investigación" : "Research Papers",
+      value: "608",
+      change: "+45",
+      trend: "up",
+      icon: Activity,
+    },
+    {
+      label: language === "es" ? "Velocidad de Procesamiento" : "Processing Speed",
+      value: "352.7 KB/s",
+      change: "-0.1%",
+      trend: "down",
+      icon: Zap,
+    },
+  ]
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {metrics.map((metric) => {

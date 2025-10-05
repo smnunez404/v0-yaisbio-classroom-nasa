@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import { useLanguage } from "@/contexts/language-context"
 
 export default function ProposePage() {
-  const [language, setLanguage] = useState<"es" | "en">("es")
+  const { language, isLoaded } = useLanguage()
   const [formData, setFormData] = useState({
     title: "",
     hypothesis: "",
@@ -21,6 +22,15 @@ export default function ProposePage() {
     email: "",
   })
   const [submitted, setSubmitted] = useState(false)
+
+  // Mostrar loading hasta que el contexto esté cargado
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-2xl">Cargando...</div>
+      </div>
+    )
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,7 +52,7 @@ export default function ProposePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900 to-slate-900">
-      <Navigation language={language} onLanguageChange={setLanguage} />
+      <Navigation />
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">

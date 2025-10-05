@@ -3,22 +3,20 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
+import { useLanguage } from "@/contexts/language-context"
 
-interface NavigationProps {
-  language: "es" | "en"
-  onLanguageChange: (lang: "es" | "en") => void
-}
-
-export function Navigation({ language, onLanguageChange }: NavigationProps) {
+export function Navigation() {
+  const { language, changeLanguage, isLoaded } = useLanguage()
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
+
   const navItems = [
-    { href: "/", label: language === "es" ? "Inicio" : "Home" },
-    { href: "/missions", label: language === "es" ? "Misiones" : "Missions" },
-    { href: "/dashboard", label: language === "es" ? "Mi Progreso" : "My Progress" },
-    { href: "/glossary", label: language === "es" ? "Glosario" : "Glossary" },
-    { href: "/propose", label: language === "es" ? "Proponer" : "Propose" },
+    { href: "/", label: !isLoaded ? "Inicio" : language === "es" ? "Inicio" : "Home" },
+    { href: "/missions", label: !isLoaded ? "Misiones" : language === "es" ? "Misiones" : "Missions" },
+    { href: "/dashboard", label: !isLoaded ? "Mi Progreso" : language === "es" ? "Mi Progreso" : "My Progress" },
+    { href: "/glossary", label: !isLoaded ? "Glosario" : language === "es" ? "Glosario" : "Glossary" },
+    { href: "/propose", label: !isLoaded ? "Proponer" : language === "es" ? "Proponer" : "Propose" },
   ]
 
   return (
@@ -47,12 +45,13 @@ export function Navigation({ language, onLanguageChange }: NavigationProps) {
           </div>
 
           {/* Language Toggle */}
-          <button
-            onClick={() => onLanguageChange(language === "es" ? "en" : "es")}
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-          >
-            {language === "es" ? "🇪🇸 ES" : "🇬🇧 EN"}
-          </button>
+                 <button
+                   onClick={() => changeLanguage(language === "es" ? "en" : "es")}
+                   className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                   suppressHydrationWarning
+                 >
+                   {!isLoaded ? "🇪🇸 ES" : language === "es" ? "🇪🇸 ES" : "🇬🇧 EN"}
+                 </button>
 
           {/* Mobile Menu Button */}
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden text-white p-2">
