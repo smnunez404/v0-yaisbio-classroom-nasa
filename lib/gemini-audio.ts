@@ -1,6 +1,6 @@
 import type { Mission, Paper, DifficultyLevel, Language } from "@/types"
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyDxJ0Hk9OTVvcouoBmCL5ry9pfpyCAPvZ4"
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || ""
 const TTS_MODEL = "gemini-2.5-pro-preview-tts"
 const MAX_CONTEXT_TOKENS = 32000
 
