@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "@google/generative-ai": "latest",
+    "@radix-ui/react-label": "latest",
+    "@radix-ui/react-progress": "latest",
+    "@radix-ui/react-slot": "latest",
     "@vercel/analytics": "latest",
     "ai": "latest",
     "class-variance-authority": "^0.7.1",
@@ -18,6 +21,7 @@
     "geist": "latest",
     "lucide-react": "^0.454.0",
     "next": "15.2.4",
+    "next-themes": "latest",
     "path": "0.12.7",
     "react": "^19",
     "react-dom": "^19",
